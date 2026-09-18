@@ -119,6 +119,75 @@ export const ProjectSchema = z.strictObject({
   }),
 });
 export type Project = z.infer<typeof ProjectSchema>;
+// A delivery plan is an explicitly maintained snapshot, not generated from activity counts.
+export const DeliveryPlanSchema = z.strictObject({
+  id: Id,
+  projectId: Id,
+  asOf: DateSchema,
+  objective: Copy,
+  headline: Title.optional(),
+  decision: Copy,
+  origin: Title,
+  milestones: z
+    .array(
+      z.strictObject({
+        id: Id,
+        title: Title,
+        outcome: Copy,
+        target: DateSchema.optional(),
+        state: z.enum(["planned", "active", "complete"]),
+        criteria: z
+          .array(
+            z.strictObject({
+              label: Title,
+              state: z.enum(["met", "not-met", "unknown"]),
+              evidenceIds: z.array(Id).max(12),
+            }),
+          )
+          .min(1)
+          .max(12),
+      }),
+    )
+    .min(1)
+    .max(12),
+  tasks: z
+    .array(
+      z.strictObject({
+        id: Id,
+        milestoneId: Id,
+        title: Title,
+        summary: Copy,
+        status: z.enum(["planned", "doing", "review", "done"]),
+        ownerId: Id.optional(),
+        acceptance: z.array(Title).min(1).max(8),
+        evidenceIds: z.array(Id).max(12),
+        dependsOn: z.array(Id).max(12),
+        blocker: Title.optional(),
+      }),
+    )
+    .max(200),
+  resources: z
+    .array(
+      z.strictObject({
+        id: Id,
+        kind: z.enum(["runbook", "repository", "design", "handoff"]),
+        title: Title,
+        summary: Copy,
+        sections: z
+          .array(z.strictObject({ title: Title, text: Copy }))
+          .min(1)
+          .max(8),
+        taskIds: z.array(Id).max(20),
+        evidenceIds: z.array(Id).max(12),
+      }),
+    )
+    .max(30),
+  relatedProjects: z
+    .array(z.strictObject({ projectId: Id, relation: Title }))
+    .max(20),
+});
+export type DeliveryPlan = z.infer<typeof DeliveryPlanSchema>;
+export type DeliveryTask = DeliveryPlan["tasks"][number];
 export const SourceStateSchema = z.strictObject({
   source: Title,
   status: z.enum(["connected", "unavailable", "delayed"]),
@@ -137,6 +206,7 @@ export interface Workspace {
   suggestions?: Suggestion[];
   briefCopies?: BriefCopy[];
   sourceStates?: SourceState[];
+  deliveryPlans?: DeliveryPlan[];
 }
 export const BriefCopySchema = z.strictObject({
   period: z.enum(["daily", "weekly", "monthly", "yearly"]),
@@ -173,13 +243,14 @@ export const WorkspaceSchema = z.strictObject({
   suggestions: z.array(SuggestionSchema).max(5000).optional(),
   briefCopies: z.array(BriefCopySchema).max(50000).optional(),
   sourceStates: z.array(SourceStateSchema).max(5000).optional(),
+  deliveryPlans: z.array(DeliveryPlanSchema).max(10000).optional(),
 });
 export const QuerySchema = z.object({
   view: z.enum(["projects", "people", "self"]).default("projects"),
   scope: z.string().max(80).default("all"),
   id: z.string().max(80).default("all"),
   tab: z
-    .enum(["overview", "progress", "contributions", "suggestions"])
+    .enum(["overview", "progress", "context", "contributions", "suggestions"])
     .default("overview"),
   period: z.enum(["daily", "weekly", "monthly", "yearly"]).default("weekly"),
   date: DateSchema.default("2026-09-09"),

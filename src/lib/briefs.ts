@@ -1,6 +1,7 @@
 import { bounds, addDays, type Period } from "./dates";
 import { createHash } from "node:crypto";
 import { latestPerWork } from "./work";
+import { plansAt, validateDelivery } from "./delivery";
 export { latestPerWork } from "./work";
 import {
   QuerySchema,
@@ -132,7 +133,11 @@ export function normalizeQuery(
     const project = workspace.projects.find((p) => p.id === query.id);
     if (!project || (query.scope !== "all" && project.groupId !== query.scope))
       query.id = "all";
-    if (!["overview", "progress"].includes(query.tab)) query.tab = "overview";
+    if (
+      !["overview", "progress", "context"].includes(query.tab) ||
+      (query.id === "all" && query.tab === "context")
+    )
+      query.tab = "overview";
   } else {
     const person = workspace.people.find((p) => p.id === query.id);
     if (!person || (query.scope !== "all" && person.groupId !== query.scope))
@@ -295,6 +300,12 @@ export function buildDashboard(workspace: Workspace, query: Query): Dashboard {
       projects: workspace.projects,
       evidence: publicEvidence,
       asOf: workspace.asOf,
+      deliveryPlans:
+        query.view === "projects"
+          ? plansAt(workspace.deliveryPlans, end).filter((p) =>
+              projects.some((project) => project.id === p.projectId),
+            )
+          : [],
       sourceStates: workspace.sourceStates?.filter(
         (s) =>
           s.asOf <= end &&
@@ -336,7 +347,7 @@ export function buildDashboard(workspace: Workspace, query: Query): Dashboard {
 }
 
 export function validateReferences(workspace: Workspace): string[] {
-  const errors: string[] = [];
+  const errors: string[] = validateDelivery(workspace);
   for (const [name, ids] of Object.entries({
     evidence: workspace.evidence.map((e) => e.id),
     projects: workspace.projects.map((p) => p.id),

@@ -18,7 +18,10 @@ import type {
   Query,
   Change,
   ProjectSnapshot,
+  DeliveryPlan,
 } from "@/lib/contracts";
+import { currentMilestone } from "@/lib/delivery";
+import { DeliveryView, ProjectContext } from "./delivery-view";
 import { shortDate } from "@/lib/dates";
 import { latestPerWork } from "@/lib/work";
 import { Avatar, Card, Empty, TextLink } from "./ui";
@@ -96,6 +99,9 @@ export function Portfolio({ data, open, navigate }: Props) {
                   <ProjectRow
                     key={snapshot.project.id}
                     snapshot={snapshot}
+                    plan={data.workspace.deliveryPlans?.find(
+                      (p) => p.projectId === snapshot.project.id,
+                    )}
                     onClick={() =>
                       navigate({
                         id: snapshot.project.id,
@@ -126,12 +132,15 @@ export function Portfolio({ data, open, navigate }: Props) {
 }
 function ProjectRow({
   snapshot,
+  plan,
   onClick,
 }: {
   snapshot: ProjectSnapshot;
+  plan?: DeliveryPlan;
   onClick: () => void;
 }) {
   const { project, latest, current } = snapshot;
+  const gate = plan ? currentMilestone(plan) : undefined;
   return (
     <button
       className="project-row"
@@ -145,18 +154,37 @@ function ProjectRow({
       </div>
       <div className="project-summary">
         <strong>
-          {current ? latest?.title : "No new update in this period"}
+          {gate
+            ? gate.title
+            : current
+              ? latest?.title
+              : "No new update in this period"}
         </strong>
         <span>
-          {current
-            ? latest?.detail
-            : latest
-              ? `Last record ${shortDate(latest.date)}`
-              : "No collected history yet"}
+          {plan
+            ? plan.decision
+            : current
+              ? latest?.detail
+              : latest
+                ? `Last record ${shortDate(latest.date)}`
+                : "No collected history yet"}
         </span>
       </div>
       <div className="project-source">
-        {current && latest && <Provenance change={latest} />}
+        {plan && gate ? (
+          <span className="portfolio-gate">
+            <span>
+              {gate.state === "complete" ? "Accepted" : "Next gate"}
+              {gate.target ? ` · ${shortDate(gate.target)}` : ""}
+            </span>
+            <small>
+              {plan.milestones.filter((m) => m.state === "complete").length}/
+              {plan.milestones.length} milestones · As of {shortDate(plan.asOf)}
+            </small>
+          </span>
+        ) : (
+          current && latest && <Provenance change={latest} />
+        )}
       </div>
       <CaretRightIcon size={19} />
     </button>
@@ -204,6 +232,17 @@ export function ProjectView({ data, open, navigate }: Props) {
   const milestoneAvailable = project.milestone.configuredAt <= data.range.end;
   if (data.query.tab === "progress")
     return <Progress data={data} open={open} navigate={navigate} />;
+  const plan = data.workspace.deliveryPlans?.find(
+    (p) => p.projectId === project.id,
+  );
+  if (data.query.tab === "context")
+    return (
+      <ProjectContext data={data} plan={plan} open={open} navigate={navigate} />
+    );
+  if (plan)
+    return (
+      <DeliveryView data={data} plan={plan} open={open} navigate={navigate} />
+    );
   if (!current)
     return (
       <div className="main-grid">

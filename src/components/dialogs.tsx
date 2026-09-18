@@ -13,8 +13,14 @@ import type { Dashboard, Evidence, Query } from "@/lib/contracts";
 import { shortDate, type Period } from "@/lib/dates";
 import { Card, Criterion, TextLink } from "./ui";
 import type { RefObject } from "react";
+import { DeliveryDetail } from "./delivery-view";
 
 export type Detail =
+  | {
+      kind: "task" | "resource" | "delivery-milestone";
+      projectId: string;
+      id: string;
+    }
   | { kind: "milestone"; projectId: string }
   | { kind: "evidence"; ids: string[] }
   | { kind: "record"; id: string }
@@ -83,6 +89,9 @@ export function Details({
       ? data.workspace.evidence.find((e) => e.id === detail.id)
       : undefined;
   const titles = {
+    task: "Delivery task",
+    resource: "Project context",
+    "delivery-milestone": "Delivery milestone",
     milestone: "Milestone evidence",
     evidence: "Supporting records",
     record: record?.restricted
@@ -121,7 +130,11 @@ export function Details({
         .map((s) => [s.source, s]),
     ).values(),
   ];
-  const isDrawer = detail?.kind === "evidence" || detail?.kind === "lineage";
+  const isDrawer =
+    detail &&
+    ["evidence", "lineage", "task", "resource", "delivery-milestone"].includes(
+      detail.kind,
+    );
   const availableGoals = data.visibleProjects.filter(
     ({ project }) => project.milestone.configuredAt <= data.range.end,
   );
@@ -162,6 +175,19 @@ export function Details({
             </Dialog.Close>
           </div>
           <div className="dialog-body">
+            {detail &&
+              (detail.kind === "task" ||
+                detail.kind === "resource" ||
+                detail.kind === "delivery-milestone") && (
+                <DeliveryDetail
+                  data={data}
+                  projectId={detail.projectId}
+                  id={detail.id}
+                  kind={detail.kind}
+                  open={setDetail}
+                  navigate={navigate}
+                />
+              )}
             {detail?.kind === "milestone" &&
               project &&
               project.milestone.configuredAt > data.range.end && (

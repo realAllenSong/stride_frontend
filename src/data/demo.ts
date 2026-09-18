@@ -6,9 +6,11 @@ import {
   type Evidence,
 } from "@/lib/contracts";
 import { rollup } from "@/lib/briefs";
+import { deliveryEvidence, deliveryPlans } from "./delivery-demo";
 
 // Authored, sanitized fixtures only. Never harvested from local sessions or company systems.
 const evidence: Evidence[] = [
+  ...deliveryEvidence,
   {
     id: "investigation-aug",
     projectId: "praetorian",
@@ -464,6 +466,7 @@ const presentation: Record<string, Partial<Change>> = {
   },
 };
 export const demoWorkspace: Workspace = {
+  deliveryPlans,
   sourceStates: [
     {
       source: "Jira",

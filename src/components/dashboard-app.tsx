@@ -111,10 +111,16 @@ export function DashboardApp({
             { label: "Contributions", id: "contributions" },
             { label: "Progress", id: "progress" },
           ]
-        : [
-            { label: "Overview", id: "overview" },
-            { label: "Progress", id: "progress" },
-          ];
+        : selectedProject
+          ? [
+              { label: "Delivery", id: "overview" },
+              { label: "Activity", id: "progress" },
+              { label: "Context", id: "context" },
+            ]
+          : [
+              { label: "Overview", id: "overview" },
+              { label: "Progress", id: "progress" },
+            ];
   const props = { data, open: setDetail, navigate };
   const selectedDate = new Date(
     Number(query.date.slice(0, 4)),

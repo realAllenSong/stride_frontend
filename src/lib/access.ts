@@ -70,6 +70,14 @@ export function authorizeWorkspace(
       grant.groupIds.includes(p.groupId) || grant.projectIds.includes(p.id),
   );
   const projectIds = new Set(projects.map((p) => p.id));
+  const deliveryPlans = workspace.deliveryPlans
+    ?.filter((p) => projectIds.has(p.projectId))
+    .map((p) => ({
+      ...p,
+      relatedProjects: p.relatedProjects.filter((r) =>
+        projectIds.has(r.projectId),
+      ),
+    }));
   const dailyBriefs = workspace.dailyBriefs
     .map((b) => ({
       ...b,
@@ -81,6 +89,9 @@ export function authorizeWorkspace(
   const personIds = new Set([
     grant.personId,
     ...projects.flatMap((p) => p.ownerIds),
+    ...(deliveryPlans ?? []).flatMap((p) =>
+      p.tasks.flatMap((t) => (t.ownerId ? [t.ownerId] : [])),
+    ),
     ...dailyBriefs.flatMap((b) =>
       b.changes.flatMap((c) => c.contributions.map((p) => p.personId)),
     ),
@@ -105,6 +116,7 @@ export function authorizeWorkspace(
     projects,
     people,
     dailyBriefs,
+    deliveryPlans,
     groups: workspace.groups.filter((g) => groupIds.has(g.id)),
     evidence: workspace.evidence.filter((e) => projectIds.has(e.projectId)),
     suggestions: workspace.suggestions?.filter(

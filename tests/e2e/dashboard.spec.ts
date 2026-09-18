@@ -40,7 +40,7 @@ test("portfolio renders and every project opens a real detail page", async ({
     .getByRole("button", { name: "Open Praetorian", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Two retry checks still need work." }),
+    page.getByRole("heading", { name: "Two recovery checks remain before release review." }),
   ).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Weekly", exact: true }),
@@ -60,10 +60,10 @@ test("milestone, evidence and restricted record drilldowns", async ({
   page,
 }) => {
   await page.goto("/?id=praetorian&period=daily");
-  const trigger = page.getByRole("button", { name: "View milestone evidence" });
+  const trigger = page.getByRole("button", { name: /Open PRT-102:/ });
   await trigger.click();
   await expect(page.getByRole("dialog")).toContainText(
-    "Changes reviewed and merged",
+    "Bound timeout recovery",
   );
   await page.screenshot({
     path: shot("milestone"),
@@ -71,8 +71,7 @@ test("milestone, evidence and restricted record drilldowns", async ({
     animations: "disabled",
   });
   await page
-    .getByRole("button", { name: "View supporting records", exact: true })
-    .last()
+    .getByRole("button", { name: /Local test run #184/ })
     .click();
   await expect(page.getByRole("dialog")).toContainText("Local test run #184");
   await page.screenshot({
@@ -80,6 +79,9 @@ test("milestone, evidence and restricted record drilldowns", async ({
     fullPage: true,
     animations: "disabled",
   });
+  await page.keyboard.press("Escape");
+  await trigger.click();
+  await page.getByRole("button", { name: /Approved session summary/ }).click();
   await page
     .getByRole("button", {
       name: "Underlying record is restricted",
@@ -132,7 +134,7 @@ test("calendar and previous period use actual historical records", async ({
   await page.getByRole("button", { name: "Previous period" }).click();
   await expect(
     page.getByRole("heading", {
-      name: "Bounded retry changes drafted",
+      name: "Retry changes are drafted. Validation is next.",
       exact: true,
     }),
   ).toBeVisible();
@@ -141,7 +143,7 @@ test("calendar and previous period use actual historical records", async ({
   await expect(page.getByRole("grid")).toBeVisible();
   await page.getByRole("button", { name: "Latest demo snapshot" }).click();
   await expect(
-    page.getByRole("heading", { name: "Two retry checks still need work." }),
+    page.getByRole("heading", { name: "Two recovery checks remain before release review." }),
   ).toBeVisible();
 });
 test("group scope and search filter navigation without rankings", async ({
@@ -175,20 +177,20 @@ test("calendar selection survives reload and browser back", async ({
   await expect(page).toHaveURL(/date=2026-09-08/);
   await expect(
     page.getByRole("heading", {
-      name: "Bounded retry changes drafted",
+      name: "Retry changes are drafted. Validation is next.",
       exact: true,
     }),
   ).toBeVisible();
   await page.reload();
   await expect(
     page.getByRole("heading", {
-      name: "Bounded retry changes drafted",
+      name: "Retry changes are drafted. Validation is next.",
       exact: true,
     }),
   ).toBeVisible();
   await page.goBack();
   await expect(
-    page.getByRole("heading", { name: "Two retry checks still need work." }),
+    page.getByRole("heading", { name: "Two recovery checks remain before release review." }),
   ).toBeVisible();
 });
 test("historical goals do not expose later configured milestones", async ({
@@ -274,15 +276,13 @@ test("source conflict and delayed refresh scenarios are inspectable", async ({
 }) => {
   await page.goto("/?id=praetorian&period=daily&scenario=conflict");
   await expect(
-    page.getByRole("heading", {
-      name: "The latest result needs clarification.",
-    }),
+    page.getByText("The latest result needs clarification.", { exact: true }),
   ).toBeVisible();
   await page.goto("/?id=praetorian&period=daily&scenario=delayed");
   await expect(
     page.getByText("GitHub refresh delayed. Last snapshot: Sep 8."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Details", exact: true }).click();
+  await page.getByRole("button", { name: "Compare records", exact: true }).click();
   await expect(page.getByRole("dialog")).toContainText(
     "current PR state is unknown",
   );
@@ -333,14 +333,14 @@ test("mobile navigation, detail sheet and overflow", async ({ page }) => {
     .getByRole("button", { name: "Praetorian", exact: true })
     .click();
   await expect(
-    page.getByRole("heading", { name: "Two retry checks still need work." }),
+    page.getByRole("heading", { name: "Two recovery checks remain before release review." }),
   ).toBeVisible();
   await page.screenshot({
     path: shot("mobile"),
     fullPage: true,
     animations: "disabled",
   });
-  await page.getByRole("button", { name: "View milestone evidence" }).click();
+  await page.getByRole("button", { name: "Exit criteria" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   expect(
     await page.evaluate(

@@ -9,7 +9,7 @@ test("theme persists across reload, navigation and browser history", async ({
   await page
     .getByRole("button", { name: "Open Praetorian", exact: true })
     .click();
-  await expect(page.getByRole("heading", { name: "Two retry checks still need work." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Two recovery checks remain before release review." })).toBeVisible();
   await page.goBack();
   await expect(page.getByRole("heading", { name: "This week, across projects." })).toBeVisible();
   await expect(
@@ -25,7 +25,7 @@ test("theme persists across reload, navigation and browser history", async ({
   await expect(
     page.getByRole("button", { name: "Use light theme" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "View milestone evidence" }).click();
+  await page.getByRole("button", { name: "Exit criteria" }).click();
   await page.goBack();
   await expect(
     page.getByRole("heading", { name: "This week, across projects." }),
@@ -33,7 +33,7 @@ test("theme persists across reload, navigation and browser history", async ({
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.goForward();
   await expect(
-    page.getByRole("heading", { name: "Two retry checks still need work." }),
+    page.getByRole("heading", { name: "Two recovery checks remain before release review." }),
   ).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
@@ -59,7 +59,7 @@ test("keyboard focus stays within details and returns to its trigger", async ({
   page,
 }) => {
   await page.goto("/?id=praetorian");
-  const trigger = page.getByRole("button", { name: "View milestone evidence" });
+  const trigger = page.getByRole("button", { name: "Exit criteria" });
   await trigger.focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("dialog")).toBeVisible();
@@ -103,7 +103,7 @@ test("source state, context and all project cards have useful details", async ({
       "Missing records do not mean missing work",
     );
     await page.keyboard.press("Escape");
-    await page.getByRole("button", { name: "Progress", exact: true }).click();
+    await page.getByRole("button", { name: "Activity", exact: true }).click();
     await expect(page.getByRole("main").locator("h1")).not.toBeEmpty();
   }
   expect(errors).toEqual([]);
@@ -136,7 +136,7 @@ test("dark dialog and calendar pass automated accessibility with reduced motion"
   await page.emulateMedia({ reducedMotion: "reduce" });
   await page.goto("/?id=praetorian");
   await page.getByRole("button", { name: "Use dark theme" }).click();
-  await page.getByRole("button", { name: "View milestone evidence" }).click();
+  await page.getByRole("button", { name: "Exit criteria" }).click();
   expect(
     (
       await new AxeBuilder({ page })
