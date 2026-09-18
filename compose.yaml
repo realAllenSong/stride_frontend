@@ -1,0 +1,16 @@
+services:
+  stride:
+    build: .
+    ports:
+      - "127.0.0.1:3100:3100"
+    environment:
+      STRIDE_AUTH_MODE: demo
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    init: true
+    restart: unless-stopped
