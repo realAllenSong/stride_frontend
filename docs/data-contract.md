@@ -67,7 +67,18 @@ Periods with only partial collected history remain partial. No missing days are 
 }
 ```
 
-The example exists in the fixture and appears in the monthly Praetorian view. A generation job must also copy the root's `revision` into `sourceRevision`. Copy is selected only when its subject, period, bounds, source revision and complete child-ID set match the current root, and its evidence is in that root. Missing or stale revisions use a neutral deterministic fallback. The fixture seals its authored example during initialization; a real adapter must persist the revision actually consumed by generation, never automatically reseal stale prose.
+`BriefCopySchema` is a discriminated union on `period`. Each level adds only the fields its fixed template renders:
+
+| Period  | Additional fields                                                                                   |
+| ------- | --------------------------------------------------------------------------------------------------- |
+| daily   | none (daily headings come from `DailyBrief` and change `headline`/`subheading`)                     |
+| weekly  | `themes` (1–4 × `{title, text, workIds?, evidenceIds?}`), `carried` (≤6 titles), `outlook?`         |
+| monthly | `arc` (copy), `decisions` (≤5 × `{text, evidenceIds}`), `risks` (≤4 titles)                         |
+| yearly  | `quarters` (1–4 × `{quarter, headline, text}`), `lessons` (≤4 titles)                               |
+
+Everything else about a period — day/week/month coverage, work streams, milestone movement, records by source, contributors — is computed deterministically by `src/lib/digest.ts` from the children and rendered whether or not copy exists. Copy may narrate those facts; it cannot replace or contradict them.
+
+The examples exist in the fixture (`src/data/copies-demo.ts`) for Praetorian, the portfolio, Zhiyuan and Elena at several levels. A generation job must also copy the root's `revision` into `sourceRevision`. Copy is selected only when its subject, period, bounds, source revision and complete child-ID set match the current root, and its evidence is in that root. Missing or stale revisions use a neutral deterministic fallback. The fixture seals its authored example during initialization; a real adapter must persist the revision actually consumed by generation, never automatically reseal stale prose.
 
 Use `subject.id = "group:<groupId>"` for a portfolio and `"group:all"` for all groups. Individual person and project subjects use their entity IDs. The daily project heading can also come from a change's `headline` / `subheading`.
 

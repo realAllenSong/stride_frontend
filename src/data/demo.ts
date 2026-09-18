@@ -5,12 +5,15 @@ import {
   type Change,
   type Evidence,
 } from "@/lib/contracts";
-import { rollup } from "@/lib/briefs";
+import { rollup, subjectFilter } from "@/lib/briefs";
 import { deliveryEvidence, deliveryPlans } from "./delivery-demo";
+import { historyChanges, historyEvidence } from "./history-demo";
+import { demoCopies } from "./copies-demo";
 
 // Authored, sanitized fixtures only. Never harvested from local sessions or company systems.
 const evidence: Evidence[] = [
   ...deliveryEvidence,
+  ...historyEvidence,
   {
     id: "investigation-aug",
     projectId: "praetorian",
@@ -234,6 +237,7 @@ const change = (
   ...partial,
 });
 const changes: Change[] = [
+  ...historyChanges,
   change({
     id: "retry-aug",
     workId: "retry-recovery",
@@ -268,6 +272,7 @@ const changes: Change[] = [
   }),
   change({
     id: "risk-review",
+    workId: "risk-reconcile",
     projectId: "risk",
     date: "2026-09-04",
     title: "Reconciliation rules were reviewed",
@@ -316,6 +321,7 @@ const changes: Change[] = [
   }),
   change({
     id: "verity-local",
+    workId: "verity-workflow",
     projectId: "verity",
     date: "2026-09-08",
     title: "CSV import to export passed",
@@ -372,6 +378,7 @@ const changes: Change[] = [
   }),
   change({
     id: "stride-link",
+    workId: "stride-shape",
     projectId: "stride",
     date: "2026-09-09",
     title: "GitHub linking working locally",
@@ -390,6 +397,7 @@ const changes: Change[] = [
   }),
   change({
     id: "research-compare",
+    workId: "research-indexing",
     projectId: "research",
     date: "2026-09-09",
     title: "Compared two indexing approaches",
@@ -411,6 +419,7 @@ const changes: Change[] = [
   }),
   change({
     id: "pilot-criteria",
+    workId: "stride-pilot",
     projectId: "stride",
     date: "2026-09-09",
     title: "Pilot selection criteria documented",
@@ -495,22 +504,7 @@ export const demoWorkspace: Workspace = {
       projectIds: ["praetorian", "stride", "verity", "research", "risk"],
     },
   ],
-  briefCopies: [
-    {
-      period: "monthly",
-      start: "2026-09-01",
-      end: "2026-09-30",
-      subject: { kind: "projects", id: "praetorian" },
-      headline: "Retry recovery reached local validation.",
-      summary:
-        "Two local checks remain unresolved. The latest collected pull request is still open.",
-      childIds: [
-        "weekly:2026-09-01:2026-09-06",
-        "weekly:2026-09-07:2026-09-13",
-      ],
-      evidenceIds: ["run-184", "pr-297"],
-    },
-  ],
+  briefCopies: demoCopies,
   suggestions: [
     {
       id: "retry-checklist",
@@ -703,13 +697,16 @@ export const demoWorkspace: Workspace = {
   ),
 };
 
-// Fixture-only sealing. Generated copy must persist the revision of the inputs it consumed.
+// Fixture-only sealing. Generated copy must persist the revision of the inputs it consumed,
+// and its child lineage must be the reducer's, not hand-typed.
 for (const copy of demoWorkspace.briefCopies ?? []) {
-  copy.sourceRevision = rollup(
+  const { root } = rollup(
     demoWorkspace,
     copy.period,
     copy.start,
     copy.end,
-    (c) => c.projectId === copy.subject.id,
-  ).root.revision;
+    subjectFilter(demoWorkspace, copy.subject),
+  );
+  copy.sourceRevision = root.revision;
+  copy.childIds = root.childIds;
 }

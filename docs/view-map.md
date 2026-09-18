@@ -11,14 +11,20 @@ The approved image prototype is implemented as reusable templates and actual sta
 | Evidence drawer                       | Project → View supporting records                                   |
 | Individual / restricted record        | Evidence drawer → a record or restricted-session link               |
 | Calendar and historical date          | Header date popover; `/?id=praetorian&period=daily&date=2026-09-08` |
-| Weekly changes                        | `/?id=praetorian&tab=progress&period=weekly`                        |
-| Monthly generated-copy example        | `/?id=praetorian&tab=progress&period=monthly`                       |
-| Yearly available history              | `/?id=praetorian&tab=progress&period=yearly`                        |
+| Project delivery board                | `/?id=praetorian` (Delivery tab: gates, task board, exit criteria)  |
+| Project context map                   | `/?id=praetorian&tab=context`                                       |
+| Daily brief template                  | `/?id=praetorian&tab=progress&period=daily`                         |
+| Weekly brief template                 | `/?id=praetorian&tab=progress&period=weekly` (day strip, themes, streams, milestone moves) |
+| Monthly brief template                | `/?id=praetorian&tab=progress&period=monthly` (week rows, arc, decisions, risks) |
+| Yearly brief template                 | `/?id=praetorian&tab=progress&period=yearly` (month grid, quarters, lessons) |
+| Portfolio brief at any grain          | `/?tab=progress&period=monthly`                                     |
 | Summary lineage                       | Footer → From … daily briefs                                        |
-| People directory                      | `/?view=people`                                                     |
-| Person brief                          | `/?view=people&id=zhiyuan`                                          |
+| People directory                      | `/?view=people` (cards: latest contribution, day dots, projects, tasks) |
+| Person brief                          | `/?view=people&id=zhiyuan` (facts, focus bar, contributions, tasks owned) |
 | Attributed contributions              | `/?view=people&id=zhiyuan&tab=contributions`                        |
-| Manager own work + team outcomes      | `/?view=people&id=elena`                                            |
+| Person period brief                   | `/?view=people&id=zhiyuan&tab=progress&period=monthly`              |
+| Manager own work + team board         | `/?view=people&id=elena`                                            |
+| Agent API                             | `/api/v1/openapi.json`, `/api/v1/projects/praetorian/graph`; CLI `node bin/stride.mjs --help` |
 | Self / suggestions                    | Sidebar → My view; `/?view=self&tab=suggestions`                    |
 | Notes-only work                       | `/?id=research&period=daily`                                        |
 | No new records                        | `/?id=risk&period=daily`                                            |

@@ -129,6 +129,52 @@ it("uses server grants for API and server-rendered pages", async () => {
   expect(forbidden).toContain("This view is not shared with you");
   expect(forbidden).not.toContain("maya-note");
 });
+it("applies the same grants to the agent API and never confirms out-of-scope IDs", async () => {
+  expect((await fetch(`${base}/api/v1/projects`)).status).toBe(401);
+  const projects = await (
+    await fetch(`${base}/api/v1/projects`, { headers: auth() })
+  ).json();
+  expect(projects.projects.map((p: { id: string }) => p.id)).toEqual([
+    "praetorian",
+  ]);
+  const graph = await (
+    await fetch(`${base}/api/v1/graph`, { headers: auth() })
+  ).json();
+  expect(
+    graph.nodes
+      .filter((n: { kind: string }) => n.kind === "project")
+      .map((n: { id: string }) => n.id),
+  ).toEqual(["project:praetorian"]);
+  for (const path of [
+    "/api/v1/projects/verity",
+    "/api/v1/projects/verity/graph",
+    "/api/v1/projects/does-not-exist",
+    "/api/v1/people/priya",
+    "/api/v1/evidence/maya-note",
+    "/api/v1/briefs?id=research",
+    "/api/v1/briefs?view=people&id=priya",
+  ]) {
+    const res = await fetch(`${base}${path}`, { headers: auth() });
+    expect(res.status, path).toBe(403);
+    expect(await res.text()).not.toContain("not found");
+  }
+  const brief = await (
+    await fetch(`${base}/api/v1/briefs?id=praetorian&period=monthly`, {
+      headers: auth(),
+    })
+  ).json();
+  expect(brief.headline).toBe("Retry recovery reached local validation.");
+  expect(JSON.stringify(brief)).not.toContain("verity");
+  const person = await (
+    await fetch(`${base}/api/v1/people/zhiyuan`, { headers: auth() })
+  ).json();
+  expect(JSON.stringify(person)).not.toContain("stride-note");
+  expect((await fetch(`${base}/api/v1/openapi.json`)).status).toBe(200);
+  expect(
+    (await fetch(`${base}/api/v1/projects`, { method: "POST", headers: auth() }))
+      .status,
+  ).toBe(405);
+});
 it("cannot impersonate a colleague through view=self", async () => {
   const result = await (
     await fetch(`${base}/api/brief?view=self&id=elena`, { headers: auth() })

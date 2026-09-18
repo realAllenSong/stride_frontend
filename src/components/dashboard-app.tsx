@@ -25,13 +25,9 @@ import type { Dashboard, Query } from "@/lib/contracts";
 import { periodLabel, PERIODS, shiftPeriod, type Period } from "@/lib/dates";
 import { Avatar, SkeletonContent } from "./ui";
 import { Details, type Detail } from "./dialogs";
-import {
-  PeopleDirectory,
-  PersonView,
-  Portfolio,
-  Progress,
-  ProjectView,
-} from "./views";
+import { Portfolio, ProjectView } from "./views";
+import { PeopleDirectory, PersonView } from "./people-view";
+import { PeriodBrief } from "./period-brief";
 
 export function DashboardApp({
   data,
@@ -497,14 +493,14 @@ export function DashboardApp({
             selectedProject ? (
               <ProjectView {...props} />
             ) : query.tab === "progress" ? (
-              <Progress {...props} />
+              <PeriodBrief {...props} />
             ) : (
               <Portfolio {...props} />
             )
           ) : selectedPerson ? (
             <PersonView {...props} />
           ) : query.tab === "progress" ? (
-            <Progress {...props} />
+            <PeriodBrief {...props} />
           ) : (
             <PeopleDirectory {...props} />
           )}

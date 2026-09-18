@@ -208,8 +208,9 @@ export interface Workspace {
   sourceStates?: SourceState[];
   deliveryPlans?: DeliveryPlan[];
 }
-export const BriefCopySchema = z.strictObject({
-  period: z.enum(["daily", "weekly", "monthly", "yearly"]),
+// Generated narrative is bounded per period. Each level adds only the fields its fixed
+// template renders, so weekly/monthly/yearly copy cannot drift into free-form markup.
+const CopyBase = {
   start: DateSchema,
   end: DateSchema,
   subject: z.strictObject({ kind: z.enum(["projects", "people"]), id: Id }),
@@ -221,8 +222,52 @@ export const BriefCopySchema = z.strictObject({
     .string()
     .regex(/^[a-f0-9]{64}$/)
     .optional(),
+};
+const Theme = z.strictObject({
+  title: Title,
+  text: Copy,
+  workIds: z.array(Id).max(12).default([]),
+  evidenceIds: z.array(Id).max(12).default([]),
 });
+export const BriefCopySchema = z.discriminatedUnion("period", [
+  z.strictObject({ period: z.literal("daily"), ...CopyBase }),
+  z.strictObject({
+    period: z.literal("weekly"),
+    ...CopyBase,
+    themes: z.array(Theme).min(1).max(4),
+    carried: z.array(Title).max(6).default([]),
+    outlook: Copy.optional(),
+  }),
+  z.strictObject({
+    period: z.literal("monthly"),
+    ...CopyBase,
+    arc: Copy,
+    decisions: z
+      .array(z.strictObject({ text: Title, evidenceIds: z.array(Id).max(8) }))
+      .max(5)
+      .default([]),
+    risks: z.array(Title).max(4).default([]),
+  }),
+  z.strictObject({
+    period: z.literal("yearly"),
+    ...CopyBase,
+    quarters: z
+      .array(
+        z.strictObject({
+          quarter: z.number().int().min(1).max(4),
+          headline: Title,
+          text: Copy,
+        }),
+      )
+      .min(1)
+      .max(4),
+    lessons: z.array(Title).max(4).default([]),
+  }),
+]);
 export type BriefCopy = z.infer<typeof BriefCopySchema>;
+export type WeeklyCopy = Extract<BriefCopy, { period: "weekly" }>;
+export type MonthlyCopy = Extract<BriefCopy, { period: "monthly" }>;
+export type YearlyCopy = Extract<BriefCopy, { period: "yearly" }>;
 export const SuggestionSchema = z.strictObject({
   id: Id,
   personId: Id,
@@ -276,6 +321,49 @@ export interface ProjectSnapshot {
   latest?: Change;
   current: boolean;
 }
+/** Deterministic facts about a period, computed from children. Copy may narrate them; it cannot contradict them. */
+export interface PeriodSlot {
+  start: string;
+  end: string;
+  label: string;
+  period: "daily" | "weekly" | "monthly";
+  changeIds: string[];
+  evidenceIds: string[];
+  projectIds: string[];
+  headline?: string;
+  future: boolean;
+}
+export interface WorkStream {
+  workId: string;
+  projectId: string;
+  title: string;
+  first: { date: string; title: string };
+  last: { date: string; title: string; detail: string; basis: Basis };
+  changeIds: string[];
+  evidenceIds: string[];
+  contributorIds: string[];
+  openItems: string[];
+  nextStep?: { text: string; evidenceId: string };
+  dates: string[];
+}
+export interface MilestoneMove {
+  projectId: string;
+  milestoneId: string;
+  title: string;
+  from?: "planned" | "active" | "complete";
+  to: "planned" | "active" | "complete";
+  target?: string;
+}
+export interface PeriodDigest {
+  unit: "day" | "week" | "month";
+  slots: PeriodSlot[];
+  streams: WorkStream[];
+  milestoneMoves: MilestoneMove[];
+  sources: { source: string; count: number }[];
+  contributors: { personId: string; changeIds: string[]; projectIds: string[] }[];
+  recordedDays: number;
+}
+export type Basis = z.infer<typeof BasisSchema>;
 export interface Dashboard {
   session?: { mode: "demo" | "gateway"; personId: string; synthetic: boolean };
   query: Query;
@@ -291,6 +379,7 @@ export interface Dashboard {
   root: BriefNode;
   lineage: BriefNode[];
   range: { start: string; end: string };
+  digest: PeriodDigest;
   notice?: { text: string; evidenceId: string };
   conflict?: {
     headline: string;

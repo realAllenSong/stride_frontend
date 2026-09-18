@@ -2,6 +2,7 @@ import { bounds, addDays, type Period } from "./dates";
 import { createHash } from "node:crypto";
 import { latestPerWork } from "./work";
 import { plansAt, validateDelivery } from "./delivery";
+import { buildDigest, subjectKey } from "./digest";
 export { latestPerWork } from "./work";
 import {
   QuerySchema,
@@ -11,6 +12,7 @@ import {
   type Change,
   type BriefNode,
   type Person,
+  type BriefCopy,
 } from "./contracts";
 
 const unique = <T>(values: T[]): T[] => [...new Set(values)];
@@ -104,6 +106,30 @@ export function descendants(people: Person[], managerId: string): string[] {
       }
   }
   return [...seen].filter((id) => id !== managerId);
+}
+
+/** The change filter a copy's subject stands for. Sealing and lookup must use the same scope. */
+export function subjectFilter(
+  workspace: Workspace,
+  subject: BriefCopy["subject"],
+): (change: Change) => boolean {
+  if (subject.kind === "projects") {
+    if (!subject.id.startsWith("group:")) return (c) => c.projectId === subject.id;
+    const scope = subject.id.slice("group:".length);
+    return (c) =>
+      workspace.projects.some(
+        (p) => p.id === c.projectId && (scope === "all" || p.groupId === scope),
+      );
+  }
+  if (subject.id.startsWith("group:")) {
+    const scope = subject.id.slice("group:".length);
+    const members = workspace.people
+      .filter((p) => scope === "all" || p.groupId === scope)
+      .map((p) => p.id);
+    return (c) => c.contributions.some((x) => members.includes(x.personId));
+  }
+  const members = [subject.id, ...descendants(workspace.people, subject.id)];
+  return (c) => c.contributions.some((x) => members.includes(x.personId));
 }
 
 export function normalizeQuery(
@@ -267,25 +293,50 @@ export function buildDashboard(workspace: Workspace, query: Query): Dashboard {
           ),
         }
       : change;
+  const subject = subjectKey(query);
+  const copies = (workspace.briefCopies ?? []).filter(
+    (c) => c.subject.kind === subject.kind && c.subject.id === subject.id,
+  );
+  // People views carry only the plans the person or their reports are attached to,
+  // so a colleague's unrelated project plan never rides along with a person brief.
+  const scopedPlans = plansAt(workspace.deliveryPlans, end).filter((p) =>
+    query.view === "projects"
+      ? projects.some((project) => project.id === p.projectId)
+      : p.tasks.some((t) => t.ownerId && memberIds.includes(t.ownerId)) ||
+        workspace.projects.some(
+          (project) =>
+            project.id === p.projectId &&
+            project.ownerIds.some((id) => memberIds.includes(id)),
+        ),
+  );
   return {
     query,
     copy:
       query.scenario === "normal"
-        ? workspace.briefCopies?.find(
+        ? copies.find(
             (c) =>
               c.period === query.period &&
               c.start === range.start &&
               c.end === range.end &&
               c.sourceRevision === root.revision &&
-              c.subject.kind ===
-                (query.view === "projects" ? "projects" : "people") &&
-              c.subject.id ===
-                (query.id === "all" ? `group:${query.scope}` : query.id) &&
               c.childIds.length === root.childIds.length &&
               c.childIds.every((id) => root.childIds.includes(id)) &&
               c.evidenceIds.every((id) => root.evidenceIds.includes(id)),
           )
         : undefined,
+    digest: buildDigest({
+      period: query.period,
+      range,
+      end,
+      asOf: workspace.asOf,
+      root,
+      changes,
+      evidence: publicEvidence,
+      plans: workspace.deliveryPlans,
+      projectIds: projects.map((p) => p.id),
+      copies,
+      subject,
+    }),
     suggestions:
       query.view === "self"
         ? (workspace.suggestions ?? []).filter(
@@ -300,12 +351,7 @@ export function buildDashboard(workspace: Workspace, query: Query): Dashboard {
       projects: workspace.projects,
       evidence: publicEvidence,
       asOf: workspace.asOf,
-      deliveryPlans:
-        query.view === "projects"
-          ? plansAt(workspace.deliveryPlans, end).filter((p) =>
-              projects.some((project) => project.id === p.projectId),
-            )
-          : [],
+      deliveryPlans: scopedPlans,
       sourceStates: workspace.sourceStates?.filter(
         (s) =>
           s.asOf <= end &&

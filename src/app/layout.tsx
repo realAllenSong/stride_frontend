@@ -7,6 +7,8 @@ import "@fontsource/geist/700.css";
 import "react-day-picker/style.css";
 import "./globals.css";
 import "@/components/delivery.css";
+import "@/components/brief.css";
+import "@/components/people.css";
 export const metadata: Metadata = {
   title: "STRIDE | Work, with context",
   description:

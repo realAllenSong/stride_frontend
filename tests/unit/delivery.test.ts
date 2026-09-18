@@ -31,9 +31,13 @@ describe("Delivery plans are not activity briefs", () => {
     expect(future.workspace.deliveryPlans![0].asOf).toBe("2026-09-09");
     expect(currentMilestone(future.workspace.deliveryPlans![0]).state).toBe("active");
   });
-  it("does not manufacture a plan for notes-only work or serialize project plans into people views", () => {
-    for (const query of [QuerySchema.parse({ id: "research" }), QuerySchema.parse({ view: "people", id: "zhiyuan" })])
-      expect(buildDashboard(demoWorkspace, query).workspace.deliveryPlans).toEqual([]);
+  it("does not manufacture a plan for notes-only work and scopes people views to attached plans", () => {
+    expect(buildDashboard(demoWorkspace, QuerySchema.parse({ id: "research" })).workspace.deliveryPlans).toEqual([]);
+    // A person brief carries only plans that person (or their reports) own tasks or projects in.
+    const zhiyuan = buildDashboard(demoWorkspace, QuerySchema.parse({ view: "people", id: "zhiyuan" }));
+    expect(zhiyuan.workspace.deliveryPlans!.map((p) => p.projectId).sort()).toEqual(["praetorian", "stride"]);
+    const priya = buildDashboard(demoWorkspace, QuerySchema.parse({ view: "people", id: "priya" }));
+    expect(priya.workspace.deliveryPlans).toEqual([]);
     expect(normalizeQuery({ view: "people", id: "zhiyuan", tab: "context" }, demoWorkspace).tab).toBe("overview");
     expect(normalizeQuery({ id: "all", tab: "context" }, demoWorkspace).tab).toBe("overview");
   });

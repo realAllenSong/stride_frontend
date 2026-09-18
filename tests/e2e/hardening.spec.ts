@@ -11,7 +11,7 @@ test("theme persists across reload, navigation and browser history", async ({
     .click();
   await expect(page.getByRole("heading", { name: "Two recovery checks remain before release review." })).toBeVisible();
   await page.goBack();
-  await expect(page.getByRole("heading", { name: "This week, across projects." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Retry validation and pilot preparation led the week." })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "Use light theme" }),
   ).toBeVisible();
@@ -28,7 +28,7 @@ test("theme persists across reload, navigation and browser history", async ({
   await page.getByRole("button", { name: "Exit criteria" }).click();
   await page.goBack();
   await expect(
-    page.getByRole("heading", { name: "This week, across projects." }),
+    page.getByRole("heading", { name: "Retry validation and pilot preparation led the week." }),
   ).toBeVisible();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.goForward();

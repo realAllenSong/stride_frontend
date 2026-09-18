@@ -4,6 +4,16 @@
   "private": true,
   "type": "module",
   "description": "An evidence-backed, read-only work dashboard. Next.js reference implementation.",
+  "bin": {
+    "stride": "bin/stride.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "docs",
+    "README.md",
+    "SECURITY.md"
+  ],
   "scripts": {
     "dev": "next dev --hostname 127.0.0.1 --port 3100",
     "build": "next build",

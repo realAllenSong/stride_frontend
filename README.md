@@ -2,7 +2,14 @@
 
 A runnable Next.js reference for the approved, read-only STRIDE dashboard. Projects, people and progress, grounded in shared evidence—not activity scores.
 
-This is an independently runnable frontend, **not a screenshot viewer**. It defaults to authored synthetic data and includes a validated snapshot adapter, a verified gateway-identity mode, server-side access grants and a read-only API. There is no live LLM, company connector, credential collection or write-back action. Company SSO and the target deployment still require environment-specific validation.
+This is an independently runnable frontend, **not a screenshot viewer**. It defaults to authored synthetic data and includes a validated snapshot adapter, a verified gateway-identity mode, server-side access grants, a read-only agent API and a CLI. There is no live LLM, company connector, credential collection or write-back action. Company SSO and the target deployment still require environment-specific validation.
+
+Two layers, deliberately different:
+
+- **Projects** — delivery boards: milestone gates with exit criteria, a read-only task board with dependencies, runbooks and a relationship map. Plans are dated snapshots; a historical date shows the plan as it was.
+- **People** — coverage briefs: what a person recorded, which projects it landed in, which delivery tasks they hold and who they worked with. Facts about records, never scores.
+
+Both are summarized at four grains. Daily briefs are the ground truth; **weekly, monthly and yearly briefs each have their own fixed template** and are reduced from the level below, so generated text can change without changing layout.
 
 ## Run locally
 
@@ -31,9 +38,9 @@ Stop the development server before starting production on the same port. The def
 
 The latest fixture snapshot is **September 9, 2026**, not today's date. The default is its weekly view.
 
-1. Open **Praetorian → View milestone evidence → View supporting records**. Inspect the local test, open PR and restricted underlying session. Press Escape to close; focus returns to the original control.
-2. Switch **Daily / Weekly / Monthly / Yearly**, pick an older date or use the previous/next arrows. Open **From … daily briefs** to inspect the summary lineage.
-3. Switch **People → Elena Novak**. Her own contributions and attributed team outcomes are separate; contributors remain named. Ethan demonstrates missing records without a negative judgment.
+1. Open **Praetorian**. The **Delivery** tab shows milestone gates and the task board; open a task for acceptance conditions, dependencies and evidence. **Context** shows the relationship map and runbooks. Pick **Sep 5** in the calendar to see the plan as it was recorded then.
+2. Switch to **Activity** and step through **Daily / Weekly / Monthly / Yearly**. Each grain has its own template: day-by-day coverage and themes for the week, week rows and decisions for the month, a twelve-month grid and quarters for the year. Open **From … daily briefs** to inspect the lineage.
+3. Switch **People → Elena Novak**. Facts tiles, a focus bar, own contributions, a team board with named contributors and the delivery tasks she holds. Ethan demonstrates missing records without a negative judgment.
 4. Open **Research Workbench** for notes-only progress. Open **Risk Data Checks → View Sep 4** for the last known update.
 5. Open **Illustrative data** at the bottom of the sidebar to explore conflicting records and a delayed GitHub refresh.
 6. Open **My view** for an optional workflow suggestion. This is a demo lens, **not an authenticated private area**.
@@ -59,7 +66,7 @@ The reference reducer preserves contributor IDs, original dates, evidence IDs an
 
 An optional `BriefCopy` supplies generated headings and summaries without controlling HTML or layout. The monthly Praetorian view includes an authored example. A SHA-256 source revision invalidates stale copy when a child or its evidence changes. No model is called by this repository; generation and scheduling belong behind the adapter.
 
-See [data contract](docs/data-contract.md), [generation instructions](docs/generation-prompt.md), [view map](docs/view-map.md) and [security boundaries](SECURITY.md).
+See [data contract](docs/data-contract.md), [generation instructions](docs/generation-prompt.md), [view map](docs/view-map.md), [agent API and CLI](docs/agent-api.md) and [security boundaries](SECURITY.md).
 
 ## Where to change things
 
@@ -70,19 +77,32 @@ See [data contract](docs/data-contract.md), [generation instructions](docs/gener
 | `src/data/demo.ts`                 | All illustrative work, evidence and replaceable copy                   |
 | `src/lib/briefs.ts`                | Scope, reporting hierarchy, time windows, deduplication and lineage    |
 | `src/components/dashboard-app.tsx` | Sidebar, navigation, calendar, themes and loading transitions          |
-| `src/components/views.tsx`         | Stable project, person, progress and suggestion templates              |
+| `src/components/views.tsx`         | Portfolio and project overview templates                               |
+| `src/components/delivery-view.tsx` | Project delivery board, context map and task/milestone detail          |
+| `src/components/period-brief.tsx`  | Daily, weekly, monthly and yearly brief templates                      |
+| `src/components/people-view.tsx`   | People directory, person brief, team board and contributions           |
+| `src/lib/digest.ts`                | Deterministic period facts: coverage slots, work streams, milestone moves |
+| `src/lib/agent-api.ts`             | Read-only projections behind `/api/v1/*` and the OpenAPI document       |
+| `bin/stride.mjs`                   | Dependency-free CLI for people and agents                              |
 | `src/components/dialogs.tsx`       | Milestones, evidence, source context and lineage drilldowns            |
 | `src/app/globals.css`              | Shared visual tokens and responsive layout                             |
 
 Next.js App Router / React / TypeScript; Radix dialogs and popovers; DayPicker; Zod; Phosphor icons; self-hosted Geist. The visual system preserves the approved sage/forest palette, restrained depth and rounded cards. Text flows naturally within a fixed section hierarchy rather than being positioned over screenshots.
 
-## Read-only API
+## Read-only API and CLI
 
 ```sh
-curl 'http://127.0.0.1:3100/api/brief?view=projects&id=praetorian&period=monthly&date=2026-09-09'
+curl 'http://127.0.0.1:3100/api/v1/projects'
+curl 'http://127.0.0.1:3100/api/v1/projects/praetorian/graph?date=2026-09-05'
+curl 'http://127.0.0.1:3100/api/v1/briefs?id=praetorian&period=monthly'
+curl 'http://127.0.0.1:3100/api/v1/openapi.json'
+
+node bin/stride.mjs projects
+node bin/stride.mjs brief --id praetorian --period weekly --md
+node bin/stride.mjs graph praetorian --mermaid
 ```
 
-The API returns the same typed, authorized `Dashboard` projection used by the page, including `root` and `lineage`. Invalid enum/date queries return 400; writes return 405. Responses are `private, no-store`. Demo mode serves public fixtures; gateway mode verifies identity and applies explicit server-owned grants before serialization. There is no CLI or MCP server in this frontend reference.
+`/api/v1/*` serves projects, delivery graphs, people, period briefs and evidence for agents; `/api/brief` returns the full `Dashboard` projection used by the page. Invalid queries return 400; writes return 405; an ID outside a grant returns 403. Responses are `private, no-store`. Demo mode serves public fixtures; gateway mode verifies identity and applies explicit server-owned grants before serialization. See [agent API and CLI](docs/agent-api.md).
 
 ## Verify
 

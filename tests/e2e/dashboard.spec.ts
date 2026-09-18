@@ -18,7 +18,7 @@ test("portfolio renders and every project opens a real detail page", async ({
     0,
   );
   await expect(
-    page.getByRole("heading", { name: "This week, across projects." }),
+    page.getByRole("heading", { name: "Retry validation and pilot preparation led the week." }),
   ).toBeVisible();
   for (const name of [
     "Praetorian",
@@ -100,8 +100,16 @@ test("period switches preserve context and summary lineage drills down", async (
 }) => {
   await page.goto("/?id=praetorian&tab=progress&period=weekly");
   await expect(
-    page.getByRole("heading", { name: "This week’s changes." }),
+    page.getByRole("heading", {
+      name: "Bounded retries reached a local test run; two checks still fail.",
+    }),
   ).toBeVisible();
+  // Weekly template: a day strip, themes and carried items.
+  await expect(page.getByRole("region", { name: "Records by day" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mon: 1 updates" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sun: not yet" })).toBeDisabled();
+  await expect(page.getByRole("heading", { name: "Review is now the constraint" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Carried into next week" })).toBeVisible();
   await page.getByRole("button", { name: "Monthly", exact: true }).click();
   await expect(
     page.getByRole("button", { name: "Choose historical date" }),
@@ -111,10 +119,36 @@ test("period switches preserve context and summary lineage drills down", async (
       name: "Retry recovery reached local validation.",
     }),
   ).toBeVisible();
+  // Monthly template: week rows carrying the weekly headlines, decisions and risks.
+  await expect(page.getByRole("heading", { name: "How the month moved" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Week by week" })).toBeVisible();
+  await expect(page.getByRole("main")).toContainText(
+    "Bounded retries reached a local test run; two checks still fail.",
+  );
+  await expect(page.getByRole("heading", { name: "Risks carried forward" })).toBeVisible();
   await page.getByRole("button", { name: "Yearly", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "2026 · available history" }),
+    page.getByRole("heading", {
+      name: "From incident catalogue to a retry fix under local test.",
+    }),
   ).toBeVisible();
+  // Yearly template: twelve months, quarters and lessons.
+  await expect(page.getByRole("region", { name: "Records by month" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Jun/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Dec/ })).toBeDisabled();
+  await expect(page.getByRole("heading", { name: "Reproduced, then implemented" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lessons recorded" })).toBeVisible();
+  // Drill from a month cell into the monthly template.
+  await page.getByRole("button", { name: /^Aug/ }).click();
+  await expect(
+    page.getByRole("button", { name: "Monthly", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
+  await expect(
+    page.getByRole("heading", {
+      name: "The flaky retry failure was reproduced, then investigated.",
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Yearly", exact: true }).click();
   await page.getByRole("button", { name: "View summary lineage" }).click();
   await expect(page.getByRole("dialog")).toContainText(
     "Original dates, contributors and evidence stay attached",
@@ -212,6 +246,13 @@ test("people, own contributions and attributed team outcomes", async ({
 }) => {
   await page.goto("/?view=people&id=elena&period=weekly");
   await expect(
+    page.getByRole("heading", {
+      name: "Team reached two local validations; pilot selection is the open ask.",
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("region", { name: "Period facts" })).toBeVisible();
+  await expect(page.getByRole("main")).toContainText("Delivery tasks owned");
+  await expect(
     page.getByRole("heading", { name: "Own contributions" }),
   ).toBeVisible();
   await expect(
@@ -219,6 +260,10 @@ test("people, own contributions and attributed team outcomes", async ({
   ).toBeVisible();
   await expect(page.getByRole("main")).toContainText("Zhiyuan Song:");
   await expect(page.getByRole("main")).toContainText("Marcus Lee:");
+  await expect(page.getByRole("main")).not.toContainText(/score|ranking/i);
+  await page.getByRole("button", { name: /STD-204/ }).click();
+  await expect(page.getByRole("dialog")).toContainText("Review the first week of feedback");
+  await page.keyboard.press("Escape");
   await page.screenshot({
     path: shot("manager"),
     fullPage: true,
@@ -234,6 +279,31 @@ test("people, own contributions and attributed team outcomes", async ({
   await expect(page.getByRole("main")).toContainText(
     "No performance conclusion is drawn",
   );
+});
+test("people directory cards and the daily template stay factual", async ({
+  page,
+}) => {
+  await page.goto("/?view=people");
+  await expect(
+    page.getByRole("heading", { name: "Shared work, person by person." }),
+  ).toBeVisible();
+  const zhiyuan = page.getByRole("main").getByRole("button", { name: /Zhiyuan Song/ });
+  await expect(zhiyuan).toContainText("Added bounded retry handling");
+  await expect(page.getByRole("main").getByRole("button", { name: /Ethan Brooks/ })).toContainText(
+    "No shared update in this period",
+  );
+  await zhiyuan.click();
+  await expect(page.getByRole("region", { name: "Period facts" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Focus this period" })).toBeVisible();
+  await page.getByRole("button", { name: "Praetorian", exact: true }).first().click();
+  await expect(page).toHaveURL(/view=projects/);
+  await page.goto("/?id=praetorian&tab=progress&period=daily");
+  await expect(page.getByRole("heading", { name: "What changed" })).toBeVisible();
+  await expect(page.getByRole("main")).toContainText("Next recorded steps");
+  await page.getByRole("button", { name: "See the whole week" }).click();
+  await expect(
+    page.getByRole("button", { name: "Weekly", exact: true }),
+  ).toHaveAttribute("aria-pressed", "true");
 });
 test("notes-only and stale snapshots remain explicitly qualified", async ({
   page,
@@ -295,6 +365,20 @@ test("read-only API validates dates and returns traceable data", async ({
   const body = await good.json();
   expect(body.root.period).toBe("yearly");
   expect(body.root.dailyIds.length).toBeGreaterThan(0);
+  expect(body.digest.slots).toHaveLength(12);
+  const projects = await (await request.get("/api/v1/projects")).json();
+  expect(projects.projects).toHaveLength(5);
+  const graph = await (
+    await request.get("/api/v1/projects/praetorian/graph?date=2026-09-05")
+  ).json();
+  expect(graph.planAsOf).toBe("2026-09-04");
+  expect(graph.nodes.some((n: { id: string }) => n.id === "task:PRT-102")).toBe(false);
+  const brief = await (await request.get("/api/v1/briefs?period=weekly")).json();
+  expect(brief.headline).toBe("Retry validation and pilot preparation led the week.");
+  expect((await request.get("/api/v1/projects/nope")).status()).toBe(404);
+  expect((await request.get("/api/v1/people?period=hourly")).status()).toBe(400);
+  const openapi = await (await request.get("/api/v1/openapi.json")).json();
+  expect(openapi.openapi).toBe("3.1.0");
   const bad = await request.get("/api/brief?date=2026-02-30");
   expect(bad.status()).toBe(400);
   const write = await request.post("/api/brief", { data: {} });
